@@ -1,0 +1,2 @@
+MODEL: claude-sonnet-4-6
+COMMIT: ec30173

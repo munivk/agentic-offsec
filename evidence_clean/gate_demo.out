@@ -1,0 +1,21 @@
+
+Proposed: run_nuclei {'tags': ['exposure']}
+  gate score: LOW (detection-only scan (passive tags))
+  auto-run (low risk)
+
+Proposed: run_nuclei {'tags': ['sqli']}
+  gate score: HIGH (active tags send payloads or attempt logins: ['sqli'])
+  checkpoint: DENIED (policy:auto-deny)
+  tool layer: refused (active tags ['sqli'] require human approval via the imp)
+
+Proposed: run_nuclei {'tags': ['default-login']}
+  gate score: HIGH (active tags send payloads or attempt logins: ['default-login'])
+  checkpoint: DENIED (policy:auto-deny)
+  tool layer: refused (active tags ['default-login'] require human approval vi)
+
+Proposed: run_nuclei {'severity': ['critical']}
+  gate score: HIGH (unbounded scan: no tags, would run the whole template library)
+  checkpoint: DENIED (policy:auto-deny)
+  tool layer: refused (unbounded scan refused: choose 1 to 3 tags from the all)
+
+Gate decisions logged to audit/gate_demo.jsonl; verify with: python verify_audit.py audit/gate_demo.jsonl

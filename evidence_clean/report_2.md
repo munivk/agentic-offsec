@@ -1,0 +1,91 @@
+# Agent Report for http://localhost:3000
+
+**Posture summary:** The target is OWASP Juice Shop running on localhost:3000. It is an intentionally vulnerable application, but three real-class issues were confirmed that would be directly exploitable or information-leaking in any environment where this service is network-accessible: an unauthenticated Prometheus metrics endpoint, a publicly browsable Swagger/OpenAPI UI, and a broad set of missing HTTP security headers. No authentication panels or high/critical misconfigurations were found by the scanner, though the misconfig/panel scan timed out on its first pass and was retried narrowly.
+
+---
+
+**FINDINGS (prioritized)**
+
+---
+
+**1. MEDIUM -- Unauthenticated Prometheus Metrics Endpoint (/metrics)**
+Observed: calls 2 and 3
+Confirmed: HTTP 200, full metrics body returned with no authentication challenge (call 3).
+
+What was exposed: Internal application telemetry including LLM token counters (juiceshop_llm_input_tokens_total, juiceshop_llm_output_tokens_total, juiceshop_llm_tool_calls_total), file upload counts and error rates, HTTP request counts broken down by status class (4XX, 5XX, 2XX, 3XX), and startup task timing (validateConfig, cleanupFtpFolder, validatePreconditions, datacreator, customizeApplication). The 5XX count of 314 is also operationally significant.
+
+Why it matters: Prometheus endpoints leak internal architecture details, feature flags, error rates, and timing data that an attacker can use to fingerprint the stack, infer backend behavior, and time attacks. The presence of LLM-specific metrics reveals an AI/LLM integration surface that is otherwise undocumented. In a production or shared-network environment this endpoint should require authentication.
+
+Confidence: High (directly confirmed by fetch).
+
+Recommended action: Place /metrics behind network-level access control (e.g., bind only to loopback or an internal interface) or add HTTP Basic/Bearer authentication. If using a reverse proxy, block /metrics from external routing entirely.
+
+---
+
+**2. MEDIUM -- Publicly Accessible Swagger/OpenAPI UI (/api-docs/swagger.yaml)**
+Observed: calls 1 and 2
+Confirmed: HTTP 200, full Swagger UI HTML returned (call 4).
+
+What was exposed: A fully rendered Swagger UI is served unauthenticated at /api-docs/swagger.yaml. This provides a complete, interactive map of every API endpoint, parameter schema, and expected request/response structure.
+
+Why it matters: An exposed API specification dramatically reduces attacker reconnaissance time. Every endpoint, parameter name, data type, and authentication scheme is handed to an attacker without any effort. Combined with the intentionally vulnerable nature of Juice Shop, this makes automated fuzzing and targeted injection trivial. In a real application, this is a direct enabler for API abuse.
+
+Confidence: High (directly confirmed by fetch).
+
+Recommended action: Restrict the Swagger UI to development environments only. In staging/production, either remove the route entirely or gate it behind authentication and IP allowlisting. The raw YAML spec should also not be publicly downloadable.
+
+---
+
+**3. LOW -- Multiple Missing HTTP Security Headers**
+Observed: call 5 (8 separate findings, all info/low severity, all matched at http://localhost:3000)
+
+What was missing: The scanner fired 8 distinct "HTTP Missing Security Headers" findings. Common headers in this template set include: Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, Strict-Transport-Security, Cross-Origin-Opener-Policy, and Cross-Origin-Resource-Policy.
+
+Why it matters: Missing CSP enables XSS escalation. Missing X-Frame-Options enables clickjacking. Missing X-Content-Type-Options enables MIME-sniffing attacks. In aggregate, absent security headers lower the bar for client-side exploitation significantly, especially relevant for a JavaScript-heavy SPA like Juice Shop.
+
+Confidence: High (scanner confirmed, consistent with known Juice Shop defaults).
+
+Recommended action: Add a security-headers middleware layer (e.g., Helmet.js for Node/Express). Prioritize Content-Security-Policy and X-Frame-Options first. Note that Strict-Transport-Security is only meaningful once TLS is in place.
+
+---
+
+**4. INFO -- Deprecated Feature-Policy Header Present**
+Observed: call 5
+
+The application sends a Feature-Policy header, which has been superseded by Permissions-Policy. This is low-risk noise but indicates the security header configuration has not been updated to current standards.
+
+Confidence: High.
+
+Recommended action: Replace Feature-Policy with Permissions-Policy. Low priority.
+
+---
+
+**NOISE DISCARDED**
+
+The repeated "HTTP Missing Security Headers" findings (8 entries in call 5) are all the same template firing for different individual headers against the same URL. They are collapsed into finding 3 above and not counted as separate issues.
+
+---
+
+**HYPOTHESES FOR A HUMAN (not confirmed by observation)**
+
+- The /metrics endpoint exposes LLM tool call counters, suggesting an AI/LLM integration. The nature, inputs, and outputs of that integration were not tested and may represent an additional attack surface (prompt injection, data leakage via LLM responses). A human should review the LLM integration separately.
+- The 314 HTTP 5XX responses visible in /metrics suggest backend errors are occurring at a meaningful rate. These could indicate unhandled exceptions that leak stack traces or internal state. A human should review server error logging.
+- The Swagger UI may expose endpoints beyond what was visible in the HTML snippet. A human should download and review the full swagger.yaml for sensitive or undocumented routes.
+
+---
+
+**WHAT I DID NOT TEST**
+
+The following areas were either not covered by the scans run or were in scope of a timed-out scan that was only partially retried:
+
+- Backup and exposed-file discovery (backup tag not run)
+- CORS misconfiguration specifics (cors tag ran but returned no findings; active CORS probing was not performed)
+- SSL/TLS configuration (ssl tag ran but localhost:3000 is HTTP-only, so no TLS surface existed to test)
+- Admin/login panel enumeration beyond what the misconfig/panel retry covered (the original panel scan timed out; the medium/high/critical retry found nothing, but info-severity panels were not retried)
+- Authentication bypass, injection, or any active exploitation (out of scope per rules; flag for human)
+- The full content of swagger.yaml (only the UI wrapper HTML was fetched, not the raw YAML spec itself)
+- WebSocket endpoints, if any
+- File upload functionality referenced in /metrics (file_uploads_count, file_upload_errors)
+
+FLAGGED FOR HUMAN REVIEW (ran automatically, flagged by policy; read back from the audit log, not written by the model):
+- call 3: fetch_url {'path': '/metrics'} (read-only GET of a sensitive path (/metrics))

@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 700" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#5a6b7b"/>
+    </marker>
+    <style>
+      .box { fill:#f3f6fa; stroke:#33516e; stroke-width:1.5; rx:8; }
+      .gov { fill:#fde7d2; stroke:#c77d2e; stroke-width:1.5; rx:8; }
+      .lbl { fill:#1b2a3a; font-size:14px; font-weight:bold; }
+      .sub { fill:#38506a; font-size:12px; }
+      .flow { stroke:#5a6b7b; stroke-width:1.6; fill:none; marker-end:url(#arrow); }
+      .flow2 { stroke:#5a6b7b; stroke-width:1.6; fill:none; marker-end:url(#arrow); marker-start:url(#arrow); }
+      .title { fill:#1b2a3a; font-size:18px; font-weight:bold; }
+      .cap { fill:#7a8a99; font-size:11px; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="980" height="700" fill="#ffffff"/>
+  <text x="30" y="34" class="title">Governed agentic red team in a production security stack</text>
+  <text x="30" y="54" class="cap">Orange = the governance layer (the part we build). A scripted baseline owns coverage; the agent adds triage.</text>
+
+  <!-- 1. Authorization -->
+  <rect x="30" y="80" width="250" height="64" class="gov"/>
+  <text x="44" y="106" class="lbl">1. Authorization and scope</text>
+  <text x="44" y="126" class="sub">Signed scope + approval ticket</text>
+
+  <!-- Secrets -->
+  <!-- Model risk management -->
+  <rect x="30" y="190" width="250" height="110" class="gov"/>
+  <text x="44" y="216" class="lbl">Model validation and</text>
+  <text x="44" y="234" class="lbl">monitoring (MRM)</text>
+  <text x="44" y="256" class="sub">Pinned model + template versions</text>
+  <text x="44" y="273" class="sub">Re-validate on any change</text>
+  <text x="44" y="290" class="sub">Track severity drift, unevidenced findings</text>
+
+  <rect x="30" y="360" width="250" height="64" class="box"/>
+  <text x="44" y="386" class="lbl">Secrets and identity</text>
+  <text x="44" y="406" class="sub">Vault, least-privilege IAM</text>
+
+  <!-- 2. Control plane -->
+  <rect x="360" y="80" width="280" height="64" class="box"/>
+  <text x="374" y="106" class="lbl">2. Control plane</text>
+  <text x="374" y="126" class="sub">Orchestrator / scheduler (what, when, in scope)</text>
+
+  <!-- 3. Agent service (center) -->
+  <rect x="360" y="190" width="280" height="270" class="box"/>
+  <text x="374" y="216" class="lbl">3. Agent service (the loop)</text>
+  <text x="374" y="238" class="sub">plan &#8594; act &#8594; triage &#8594; decide &#8594; report</text>
+  <rect x="378" y="256" width="244" height="40" class="gov"/>
+  <text x="390" y="272" class="sub">Scope allowlist enforced in code</text>
+  <text x="390" y="289" class="sub">Read-only by default</text>
+  <rect x="378" y="306" width="244" height="46" class="gov"/>
+  <text x="390" y="324" class="sub">Impact gate: blast radius, reversibility,</text>
+  <text x="390" y="340" class="sub">data sensitivity &#8594; human checkpoint</text>
+  <rect x="378" y="362" width="244" height="82" class="gov"/>
+  <text x="390" y="380" class="sub">Evidence rule: every finding cites</text>
+  <text x="390" y="396" class="sub">the logged call that observed it</text>
+  <text x="390" y="416" class="sub">Report checked against the audit log;</text>
+  <text x="390" y="432" class="sub">mismatches to a human (planned)</text>
+
+  <!-- LLM in tenancy -->
+  <rect x="720" y="190" width="230" height="64" class="box"/>
+  <text x="734" y="216" class="lbl">LLM in tenancy</text>
+  <text x="734" y="234" class="sub">Private endpoint; not shared</text>
+  <text x="734" y="249" class="sub">with model vendor; model-agnostic</text>
+
+  <!-- 4. Scanner pool -->
+  <rect x="720" y="300" width="230" height="78" class="box"/>
+  <text x="734" y="326" class="lbl">4. Scanner pool</text>
+  <text x="734" y="346" class="sub">Deterministic baseline</text>
+  <text x="734" y="363" class="sub">+ agentic triage (Nuclei, ...)</text>
+
+  <!-- Approved targets -->
+  <rect x="720" y="430" width="230" height="56" class="box"/>
+  <text x="734" y="456" class="lbl">Approved targets only</text>
+  <text x="734" y="474" class="sub">Sandbox / authorized assets</text>
+
+  <!-- 5. Outputs -->
+  <rect x="30" y="580" width="920" height="70" class="box"/>
+  <text x="44" y="608" class="lbl">5. Outputs</text>
+  <text x="44" y="630" class="sub">SIEM (SOC sees agent traffic as known)   ·   Ticketing (Jira / ServiceNow) with context   ·   Hash-chained audit log, head hash anchored externally (WORM / KMS-signed)</text>
+
+  <!-- flows -->
+  <path class="flow" d="M280,112 L360,112"/>
+  <path class="flow" d="M500,144 L500,190"/>
+  <path class="flow" d="M280,392 L360,392"/>
+  <path class="flow" d="M360,245 L280,245"/>
+  <path class="flow2" d="M640,230 L720,222"/>
+  <path class="flow" d="M640,330 L720,335"/>
+  <path class="flow" d="M835,378 L835,430"/>
+  <path class="flow" d="M500,460 L500,580"/>
+  <path class="flow" d="M835,486 L835,560 L500,560 L500,580"/>
+</svg>

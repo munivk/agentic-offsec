@@ -1,0 +1,35 @@
+# The buyer's policy for the impact gate. The security team owns this file, not the code.
+# risk.py and tools.py read it at start-up. Change a list or a level action here and the
+# gate changes, with no code edit. In production this would come from the institution's
+# policy engine, reviewed and versioned like any other control.
+
+# The only targets the agent may ever touch.
+allowed_hosts = ["localhost:3000", "127.0.0.1:3000"]
+
+# What each risk level does.
+#   "run"            run on its own
+#   "run_and_flag"   run, log it, and list it in the report for a human to review after
+#   "ask_human"      pause until a named human approves or denies, with a reason
+#   "deny"           refuse without asking
+# Floor: high may only be "ask_human" or "deny". The program refuses to start otherwise.
+[levels]
+low = "run"
+medium = "run_and_flag"
+high = "ask_human"
+
+[tags]
+# Nuclei tags that only DETECT: a benign request, then match the response.
+passive = ["exposure", "misconfig", "misconfiguration", "tech", "tech-detect",
+           "api", "swagger", "config", "backup", "headers", "cors", "ssl", "panel"]
+
+# Nuclei tags that take an ACTIVE action: attack payloads, login attempts, takeovers.
+# Scored high, AND always excluded from every scan unless a human approved that tag.
+# One list does both jobs, so the score and the exclusion can never disagree.
+active = ["sqli", "xss", "injection", "rce", "lfi", "ssrf", "fuzz", "fuzzing",
+          "default-login", "bruteforce", "brute-force", "auth-bypass", "dos",
+          "intrusive", "takeover"]
+
+[paths]
+# Paths whose content is sensitive even to a read-only GET. Scored medium.
+sensitive = ["/ftp", "/backup", ".bak", "/admin", "/.git", "/metrics",
+             "/.env", "/config", "/secrets"]

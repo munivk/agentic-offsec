@@ -1,0 +1,23 @@
+# secrets and local AWS config: never commit
+.aws/
+*.pem
+*.key
+.env
+
+# python
+.venv/
+__pycache__/
+*.pyc
+
+# run outputs (regenerated every run); the folders stay via .gitkeep
+audit/*.jsonl
+reports/*.md
+reports/*.json
+scans/*.json
+scans/*.jsonl
+scans/*.log
+!audit/.gitkeep
+!reports/.gitkeep
+!scans/.gitkeep
+
+.DS_Store

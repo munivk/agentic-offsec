@@ -1,0 +1,13 @@
+{
+  "mode": "scripted_baseline",
+  "status": "timeout",
+  "duration_s": 600.0,
+  "raw_count": 0,
+  "deduped_count": 0,
+  "prioritized_count": 0,
+  "noise_dropped": 0,
+  "found_metrics": false,
+  "found_swagger": false,
+  "prioritized": [],
+  "cost_usd": 0.0
+}

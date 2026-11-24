@@ -1,0 +1,44 @@
+{
+  "mode": "scripted_baseline",
+  "status": "ok",
+  "duration_s": 442.4,
+  "raw_count": 14,
+  "deduped_count": 7,
+  "prioritized_count": 6,
+  "noise_dropped": 1,
+  "found_metrics": true,
+  "found_swagger": true,
+  "prioritized": [
+    {
+      "template_id": "prometheus-metrics",
+      "severity": "medium",
+      "matched_at": "http://localhost:3000/metrics"
+    },
+    {
+      "template_id": "swagger-api",
+      "severity": "info",
+      "matched_at": "http://localhost:3000/api-docs/swagger.json"
+    },
+    {
+      "template_id": "fingerprinthub-web-fingerprints",
+      "severity": "info",
+      "matched_at": "http://localhost:3000"
+    },
+    {
+      "template_id": "tech-detect",
+      "severity": "info",
+      "matched_at": "http://localhost:3000"
+    },
+    {
+      "template_id": "deprecated-feature-policy",
+      "severity": "info",
+      "matched_at": "http://localhost:3000"
+    },
+    {
+      "template_id": "owasp-juice-shop-detect",
+      "severity": "info",
+      "matched_at": "http://localhost:3000"
+    }
+  ],
+  "cost_usd": 0.0
+}

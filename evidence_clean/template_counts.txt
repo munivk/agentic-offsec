@@ -1,0 +1,12 @@
+# Nuclei template counts by tag (generated 2026-11-23)
+# Library: nuclei-templates v10.5.2, http/ folder (web templates)
+# Method: a template counts for <tag> if a line matches ^\s*tags:.*\b<tag>\b
+#         (same as: grep -rlE --include="*.yaml" "^\s*tags:.*\b<tag>\b" ~/nuclei-templates/http | wc -l)
+total_web_templates 11835
+intrusive 655
+sqli 622
+default-login 338
+fuzz 30
+dos 6
+any_gate_active_tag 4886
+# any_gate_active_tag = templates carrying at least one tag in policy.toml [tags] active

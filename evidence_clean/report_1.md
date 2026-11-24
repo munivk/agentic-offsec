@@ -1,0 +1,103 @@
+# Agent Report for http://localhost:3000
+
+POSTURE SUMMARY: The target is an OWASP Juice Shop instance (an intentionally vulnerable application) running unauthenticated on localhost:3000. Two confirmed, directly exploitable exposures were found -- an open Prometheus metrics endpoint and a fully public Swagger/OpenAPI UI -- alongside a cluster of missing HTTP security headers. The application should not be internet-facing in its current state.
+
+---
+
+PRIORITIZED FINDINGS
+
+---
+
+FINDING 1 -- MEDIUM -- Unauthenticated Prometheus Metrics Endpoint
+Path: http://localhost:3000/metrics
+Observed: calls 1, 2 (detected); call 3 (confirmed by fetch)
+Confidence: HIGH -- endpoint returned HTTP 200 with live Prometheus text-format data.
+
+What was exposed: The /metrics endpoint is publicly accessible with no authentication. The fetched body (call 3) reveals:
+- Application identity: "juiceshop" (confirms the app name and stack)
+- Internal startup task names and precise timing (validateConfig, cleanupFtpFolder, validatePreconditions, datacreator, customizeApplication, customizeEasterEgg) -- these reveal internal architecture and initialization sequence
+- Aggregate HTTP request counts broken down by status class (2XX: 4865, 5XX: 345, 3XX: 3, 4XX: 1) -- the high 5XX count is itself a signal of instability or active probing
+- LLM token counters (juiceshop_llm_input_tokens_total, juiceshop_llm_output_tokens_total, juiceshop_llm_tool_calls_total) -- confirms an LLM integration is present
+- File upload counters by type -- reveals upload functionality exists
+
+Why it matters: Prometheus metrics are intended for internal scraping by a monitoring system. Exposing them publicly leaks operational intelligence (traffic volumes, error rates, feature flags, internal task names) that directly aids an attacker in reconnaissance and targeting. In production systems this endpoint often also exposes memory, CPU, goroutine counts, and dependency versions.
+
+Recommended human action: Restrict /metrics to an internal network interface or require authentication (e.g., a bearer token or IP allowlist). Do not expose this endpoint on any public-facing port.
+
+---
+
+FINDING 2 -- MEDIUM -- Public Swagger / OpenAPI UI with No Authentication
+Paths: http://localhost:3000/api-docs/swagger.json and http://localhost:3000/api-docs/swagger.yaml
+Observed: calls 1, 2 (detected); call 4 (confirmed by fetch -- full Swagger UI HTML returned at HTTP 200)
+Confidence: HIGH -- both JSON and YAML variants are live and unauthenticated.
+
+What was exposed: A fully rendered Swagger UI is accessible to any unauthenticated visitor. This provides a complete, browsable map of every API endpoint, accepted parameters, request/response schemas, and authentication mechanisms the application exposes.
+
+Why it matters: While API documentation is not itself a vulnerability, publicly exposing it in a production environment gives attackers a precise attack surface map -- endpoint names, parameter types, expected payloads -- dramatically reducing the effort needed to probe for injection, IDOR, or authentication bypass flaws. Combined with the Juice Shop's known intentional vulnerabilities, this is a significant reconnaissance aid.
+
+Recommended human action: In any production deployment, gate the /api-docs path behind authentication or restrict it to internal networks. For this sandbox, note that the Swagger UI is a known feature of Juice Shop; treat it as a risk accepted only in the sandbox context.
+
+---
+
+FINDING 3 -- LOW -- Multiple Missing HTTP Security Headers
+Path: http://localhost:3000 (root)
+Observed: call 5 (8 separate "HTTP Missing Security Headers" findings)
+Confidence: HIGH -- scanner confirmed absence of headers on the root response.
+
+What was exposed: The application is missing several standard defensive HTTP response headers. Based on the number of findings (8 distinct hits), the absent headers likely include some combination of: Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, Strict-Transport-Security, Cross-Origin-Opener-Policy, and Cross-Origin-Resource-Policy.
+
+Why it matters: Missing security headers increase exposure to clickjacking (no X-Frame-Options), MIME-sniffing attacks (no X-Content-Type-Options), cross-site information leakage (no Referrer-Policy), and reduce the browser's ability to enforce content restrictions (no CSP). For a known-vulnerable app like Juice Shop these are lower priority, but in any real deployment they represent a hardening gap.
+
+Recommended human action: Add a security-header middleware layer (e.g., Helmet.js for Node/Express) to set all standard defensive headers. Prioritize Content-Security-Policy and X-Frame-Options.
+
+---
+
+FINDING 4 -- INFO -- Deprecated Feature-Policy Header Present
+Path: http://localhost:3000
+Observed: call 5
+Confidence: HIGH
+
+The application sends the legacy Feature-Policy header, which has been superseded by Permissions-Policy. Modern browsers ignore Feature-Policy. This is a minor hygiene issue, not a risk.
+
+Recommended human action: Replace Feature-Policy with Permissions-Policy in the response headers.
+
+---
+
+FINDING 5 -- INFO -- Application Identified as OWASP Juice Shop
+Path: http://localhost:3000
+Observed: call 6 (three technology fingerprint templates all matched: FingerprintHub, Wappalyzer, and the dedicated OWASP Juice Shop template)
+Confidence: HIGH
+
+The application is unambiguously identified as OWASP Juice Shop, an intentionally vulnerable Node.js/Angular application. This is expected for a sandbox. It means the full Juice Shop vulnerability catalog (SQLi, XSS, IDOR, broken auth, etc.) applies by design and should be assumed present.
+
+Recommended human action: Ensure this instance is isolated to the sandbox network and is never exposed to untrusted users or the public internet.
+
+---
+
+NOISE DISCARDED
+
+No findings were discarded. All scanner hits were either confirmed by fetch or corroborated by multiple scan calls. The 8 "HTTP Missing Security Headers" findings are deduplicated above into a single finding (they represent one misconfiguration class on one host).
+
+---
+
+HYPOTHESES FOR A HUMAN (not confirmed by this assessment)
+
+- The LLM integration (evidenced by the llm_input_tokens, llm_output_tokens, and llm_tool_calls metrics in /metrics) is an unusual addition to standard Juice Shop. A human should investigate what LLM backend is configured, what tools it can call, and whether the tool-call interface is accessible or injectable via the API. This could represent a significant attack surface not covered by standard Juice Shop CVEs.
+- The high 5XX error rate (345 out of ~5214 requests) may indicate active probing, a misconfigured route, or an unstable dependency. A human should review application logs.
+- CORS policy behavior was not fully confirmed (the headers/cors/ssl scan returned no CORS-specific findings, but the scan may not have tested all API routes). A human should manually verify CORS headers on /api and /rest endpoints.
+
+---
+
+WHAT I DID NOT TEST
+
+- Authentication bypass or credential attacks (out of scope, exploitation prohibited)
+- CORS behavior on individual API routes (only the root was scanned; no CORS findings were returned but coverage was not exhaustive)
+- The misconfig and panel tag scan (call 1) timed out and was only partial -- admin panels, debug endpoints, or other misconfigurations beyond what call 2 found may exist and were not fully enumerated
+- Backup file enumeration (the backup tag in call 6 returned no findings, but the scan completed in 169s and may not have been exhaustive against all path patterns)
+- SSL/TLS configuration (the target is HTTP only on port 3000; no TLS was present to assess)
+- WebSocket endpoints
+- Any POST, PUT, DELETE, or authenticated API behavior
+- The LLM tool-call interface specifically
+
+FLAGGED FOR HUMAN REVIEW (ran automatically, flagged by policy; read back from the audit log, not written by the model):
+- call 3: fetch_url {'path': '/metrics'} (read-only GET of a sensitive path (/metrics))
